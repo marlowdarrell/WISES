@@ -13,7 +13,6 @@
     <allow-intent href="geo:*" />
     <allow-intent href="market:*" />
     
-    <!-- Android Configuration -->
     <platform name="android">
         <!-- Target Android 14 (API 34) -->
         <preference name="android-targetSdkVersion" value="34" />
@@ -24,7 +23,6 @@
         <preference name="KeepRunning" value="true" />
         <preference name="AndroidLaunchMode" value="singleTask" />
 
-        <!-- Permissions -->
         <config-file parent="/*" target="AndroidManifest.xml">
             <uses-permission android:name="android.permission.INTERNET" />
             <uses-permission android:name="android.permission.RECORD_AUDIO" />
@@ -32,15 +30,15 @@
             <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
             <uses-permission android:name="android.permission.WAKE_LOCK" />
             
-            <!-- Android 12+ Bluetooth Permissions (Required for Audio Switch) -->
+            <!-- Android 12+ Bluetooth (Prevents crash when switching audio) -->
             <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
             <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
             <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
             
-            <!-- Android 13+ Notification Permission -->
+            <!-- Android 13+ Notifications -->
             <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
             
-            <!-- Android 14+ Foreground Service Permissions -->
+            <!-- Android 14+ Foreground Service (Prevents crash in background) -->
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
         </config-file>
