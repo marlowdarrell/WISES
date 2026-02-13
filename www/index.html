@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Cordova Update: Added viewport-fit=cover for notched phones -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- Cordova Update: Content Security Policy to allow PeerJS and CDNs -->
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'self' gap: data: blob: filesystem:; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'; media-src *">
+    
+    <title>Wise Voice</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <!-- Importing Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Cordova Update: Essential script reference -->
+    <script src="cordova.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'wise-lime': '#8ED865', /* Slightly darker lime */
+                        'wise-dark': '#163300',
+                        'wise-forest': '#254E3A',
+                        'wise-gray': '#F2F5F8',
+                    },
+                    animation: {
+                        'blob': 'blob 10s infinite',
+                        'fade-up': 'fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'scale-in': 'scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        },
+                        fadeUp: {
+                            '0%': { opacity: '0', transform: 'translateY(40px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        scaleIn: {
+                            '0%': { transform: 'scale(0.9)', opacity: '0' },
+                            '100%': { transform: 'scale(1)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #8ED865; /* Updated darker lime */
+            color: #163300;
+            -webkit-tap-highlight-color: transparent;
+            /* Cordova Update: Prevent text selection for native app feel */
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Massive Typography Style */
+        .wise-headline {
+            font-weight: 900;
+            line-height: 0.85;
+            letter-spacing: -0.06em;
+        }
+
+        /* Smooth Interaction Class (120hz feel) */
+        .smooth-hover {
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .smooth-hover:hover {
+            transform: scale(1.04) translateY(-2px);
+            box-shadow: 0 20px 40px -10px rgba(22, 51, 0, 0.2);
+        }
+        
+        .smooth-hover:active {
+            transform: scale(0.96);
+        }
+
+        /* Button Styles tailored for Lime BG */
+        .btn-primary {
+            background-color: #163300;
+            color: #ffffff;
+            border: 2px solid #163300;
+        }
+        
+        .btn-secondary {
+            background-color: #ffffff;
+            color: #163300;
+            border: 2px solid #ffffff;
+        }
+
+        .keypad-btn {
+            font-size: 1.5rem;
+            font-weight: 600;
+            border-radius: 50%;
+            width: 72px;
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(255,255,255,0.2);
+            border: 1px solid rgba(22, 51, 0, 0.1);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .keypad-btn:active {
+            background-color: #163300;
+            color: white;
+            transform: scale(0.9);
+        }
+
+        /* Visualizer Blob */
+        .visualizer-orb {
+            border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+            background: #163300;
+            transition: all 0.1s ease;
+        }
+        
+        /* Utility to hide scrollbar */
+        ::-webkit-scrollbar { display: none; }
+        
+    </style>
+</head>
+<body class="min-h-screen flex flex-col overflow-hidden relative selection:bg-black selection:text-wise-lime">
+
+    <!-- Subtle Background Noise/Texture for "Cold" feel -->
+    <div class="fixed inset-0 opacity-20 pointer-events-none mix-blend-overlay" 
+         style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E');">
+    </div>
+
+    <!-- Decorative Elements (Darker blobs for contrast on lime) -->
+    <div class="fixed top-[-15%] right-[-15%] w-[500px] h-[500px] bg-white/30 rounded-full blur-3xl -z-10 animate-blob"></div>
+    <div class="fixed bottom-[-15%] left-[-15%] w-[400px] h-[400px] bg-emerald-900/10 rounded-full blur-3xl -z-10 animate-blob animation-delay-2000"></div>
+
+    <!-- Connection Status Pill (Minimalist, floating) -->
+    <div id="connection-status" class="hidden absolute top-6 right-6 z-30 animate-fade-up">
+        <div class="flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg">
+            <div id="status-dot" class="w-2 h-2 rounded-full bg-gray-400"></div>
+            <span id="status-text" class="text-xs font-bold uppercase tracking-wide opacity-80">Offline</span>
+        </div>
+    </div>
+
+    <main class="flex-1 w-full max-w-lg mx-auto p-6 relative z-10 flex flex-col justify-center">
+
+        <!-- HTTPS Warning (Optional in Cordova, but kept for logic consistency) -->
+        <div id="https-warning" class="hidden absolute top-6 left-6 right-6 z-50 p-4 bg-orange-100/90 backdrop-blur-md rounded-2xl border border-orange-200 flex items-start gap-3 shadow-xl">
+            <span class="text-orange-600 font-bold">!</span>
+            <div>
+                <h3 class="font-bold text-sm text-orange-900">Microphone blocked</h3>
+                <p class="text-xs text-orange-800 mt-1">Please use HTTPS to enable audio features.</p>
+            </div>
+        </div>
+
+        <!-- Reconnecting Warning -->
+        <div id="reconnecting-warning" class="hidden absolute top-6 left-6 right-6 z-50 p-4 bg-yellow-100/90 backdrop-blur-md rounded-2xl border border-yellow-200 flex items-center justify-center gap-3 shadow-xl animate-fade-up">
+            <div class="w-2 h-2 rounded-full bg-yellow-500 animate-ping"></div>
+            <span class="font-bold text-sm text-yellow-900">Reconnecting...</span>
+        </div>
+
+        <!-- SCREEN 1: MODE SELECTION (Home) -->
+        <div id="screen-mode" class="flex flex-col h-full justify-between py-12">
+            <div class="flex-1 flex flex-col justify-center">
+                <!-- Massive Typography -->
+                <h1 class="text-[5rem] sm:text-[6rem] wise-headline text-wise-dark mb-8 tracking-tighter opacity-0 animate-fade-up" style="animation-delay: 0.1s;">
+                    Voice<br>
+                    calls<br>
+                    <!-- UPDATED: Solid white text with straight underline -->
+                    <span class="text-white relative inline-block">
+                        securely
+                        <!-- Adjusted to be an underline instead of strikethrough -->
+                        <div class="absolute bottom-[10%] left-[-2%] w-[104%] h-[5px] bg-wise-dark"></div>
+                    </span><br>
+                    encrypted.
+                </h1>
+            </div>
+
+            <div class="space-y-4 mb-4 opacity-0 animate-fade-up" style="animation-delay: 0.5s;">
+                <button onclick="goToHost()" class="w-full btn-primary h-20 rounded-[2rem] font-bold text-xl flex items-center justify-between px-8 smooth-hover group">
+                    <span>Create a room</span>
+                    <span class="bg-white/20 p-2 rounded-full group-hover:rotate-45 transition-transform duration-300">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    </span>
+                </button>
+                
+                <button onclick="goToJoin()" class="w-full btn-secondary h-20 rounded-[2rem] font-bold text-xl flex items-center justify-between px-8 smooth-hover group">
+                    <span>Join existing</span>
+                    <span class="group-hover:translate-x-1 transition-transform duration-300">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </span>
+                </button>
+            </div>
+        </div>
+
+        <!-- SCREEN 2: HOST (Pin Generation) -->
+        <div id="screen-host" class="hidden flex flex-col h-full animate-scale-in">
+            <button onclick="cancelSession()" class="absolute top-0 left-0 mt-4 w-12 h-12 flex items-center justify-center bg-white rounded-full hover:scale-110 transition-transform duration-300 shadow-sm">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#163300" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+
+            <div class="flex-1 flex flex-col justify-center items-center text-center">
+                <div class="w-24 h-24 bg-wise-dark rounded-full flex items-center justify-center mb-8 shadow-2xl">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#8ED865" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                
+                <h2 class="text-4xl font-black text-wise-dark mb-4 tracking-tight">Share this code</h2>
+                <p class="text-wise-dark/70 font-medium text-lg mb-12">The other person needs this key to join.</p>
+
+                <div class="w-full bg-white p-10 rounded-[2.5rem] mb-12 shadow-[0_20px_60px_-15px_rgba(22,51,0,0.15)] relative overflow-hidden group">
+                    <div class="text-6xl font-mono font-bold text-wise-dark tracking-widest relative z-10" id="generated-pin">...</div>
+                </div>
+
+                <div class="flex items-center gap-3 px-6 py-3 bg-white/40 rounded-full">
+                    <div class="w-3 h-3 bg-white rounded-full animate-bounce"></div>
+                    <div class="w-3 h-3 bg-white rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                    <div class="w-3 h-3 bg-white rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                    <span class="text-sm font-bold text-wise-dark ml-2">Waiting for peer</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 3: JOIN (Keypad) -->
+        <div id="screen-join" class="hidden flex flex-col h-full animate-scale-in">
+             <button onclick="cancelSession()" class="absolute top-0 left-0 mt-4 w-12 h-12 flex items-center justify-center bg-white rounded-full hover:scale-110 transition-transform duration-300 shadow-sm">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#163300" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+
+            <div class="mt-20 mb-10 text-center">
+                <h2 class="text-3xl font-black text-wise-dark mb-2 tracking-tight">Enter access code</h2>
+                <div class="h-24 flex items-end justify-center pb-4">
+                    <span id="pin-display" class="text-6xl font-bold text-wise-dark tracking-widest min-h-[60px]"></span>
+                    <span class="w-[4px] h-12 bg-wise-dark animate-pulse ml-2 mb-2 rounded-full"></span>
+                </div>
+            </div>
+
+            <!-- Minimalist Keypad -->
+            <div class="grid grid-cols-3 gap-y-6 gap-x-8 max-w-[320px] mx-auto mb-10">
+                <button class="keypad-btn text-wise-dark" onclick="pressKey('1')">1</button>
+                <button class="keypad-btn text-wise-dark" onclick="pressKey('2')">2</button>
+                <button class="keypad-btn text-wise-dark" onclick="pressKey('3')">3</button>
+                <button class="keypad-btn text-wise-dark" onclick="pressKey('4')">4</button>
+                <button class="keypad-btn text-wise-dark" onclick="pressKey('5')">5</button>
+                <button class="keypad-btn text-wise-dark" onclick="pressKey('6')">6</button>
+                <button class="keypad-btn text-wise-dark" onclick="pressKey('7')">7</button>
+                <button class="keypad-btn text-wise-dark" onclick="pressKey('8')">8</button>
+                <button class="keypad-btn text-wise-dark" onclick="pressKey('9')">9</button>
+                <button class="keypad-btn text-wise-dark/50 text-base border-none bg-transparent hover:bg-transparent" onclick="clearPin()">Clear</button>
+                <button class="keypad-btn text-wise-dark" onclick="pressKey('0')">0</button>
+                <button class="keypad-btn text-wise-dark border-none bg-transparent hover:bg-transparent" onclick="backspacePin()">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
+                </button>
+            </div>
+
+            <div class="mt-auto pb-8">
+                <button id="btn-connect" onclick="connectToPin()" class="w-full btn-primary h-20 rounded-[2rem] font-bold text-xl disabled:opacity-50 disabled:scale-100 smooth-hover" disabled>
+                    Connect
+                </button>
+            </div>
+        </div>
+
+        <!-- SCREEN 4: CONNECTING/STATUS -->
+        <div id="screen-status" class="hidden flex flex-col h-full items-center justify-center text-center animate-scale-in">
+            <div id="status-icon-container" class="mb-8 relative">
+                <div id="status-ping" class="absolute inset-0 bg-white/40 rounded-full animate-ping"></div>
+                <div class="relative w-28 h-28 bg-white rounded-full flex items-center justify-center text-5xl shadow-xl">
+                    <span id="status-icon">📡</span>
+                </div>
+            </div>
+            
+            <h2 id="status-title" class="text-3xl font-black text-wise-dark mb-4">Connecting</h2>
+            <p id="status-desc" class="text-wise-dark/70 font-medium text-lg max-w-[260px] mx-auto">Handshaking securely...</p>
+
+            <div id="debug-info" class="hidden mt-8 p-6 bg-red-100 rounded-2xl text-left w-full border border-red-200 shadow-inner">
+                <p class="text-xs font-mono text-red-600 font-bold mb-2 uppercase">Error Log</p>
+                <p class="text-sm text-red-900 font-mono break-all leading-relaxed" id="err-msg"></p>
+            </div>
+
+            <button onclick="resetApp()" class="mt-12 px-8 py-4 bg-white/20 rounded-full text-wise-dark font-bold hover:bg-white/40 transition-colors">
+                Close
+            </button>
+        </div>
+
+        <!-- SCREEN 5: ACTIVE CALL -->
+        <div id="screen-active" class="hidden flex flex-col h-full animate-fade-up">
+            
+            <!-- Top Info -->
+            <div class="text-center mt-8 mb-12">
+                <div class="inline-flex items-center gap-2 px-5 py-2 bg-wise-dark rounded-full mb-4 shadow-lg">
+                    <div class="w-2 h-2 rounded-full bg-wise-lime animate-pulse"></div>
+                    <span class="text-xs font-bold text-wise-lime uppercase tracking-wider">Encrypted</span>
+                </div>
+                <div id="session-timer" class="text-6xl font-mono font-bold text-wise-dark mt-2 tracking-tighter">00:00</div>
+                
+                <div class="flex items-center justify-center gap-3 mt-4">
+                    <span class="text-xs font-bold uppercase tracking-widest text-wise-dark/50">Fingerprint</span>
+                    <span id="security-fingerprint" class="text-lg grayscale hover:grayscale-0 transition-all cursor-help bg-white/30 px-3 py-1 rounded-lg">🔒</span>
+                </div>
+            </div>
+
+            <!-- Central Visualizer (The Blob) -->
+            <div class="flex-1 flex items-center justify-center relative my-8">
+                <!-- Rings -->
+                <div class="absolute w-[300px] h-[300px] border border-wise-dark/10 rounded-full"></div>
+                <div class="absolute w-[220px] h-[220px] border border-wise-dark/20 rounded-full"></div>
+                
+                <!-- Active pulsing blob -->
+                <div id="visualizer-blob" class="w-40 h-40 visualizer-orb shadow-2xl flex items-center justify-center relative z-10">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#8ED865" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                </div>
+                
+                <div id="remote-indicator" class="absolute w-40 h-40 bg-white/30 rounded-full z-0 transition-all duration-75 blur-md"></div>
+            </div>
+
+            <!-- Bottom Controls -->
+            <div class="mt-auto grid grid-cols-2 gap-6 pb-4">
+                <button id="btn-mute" onclick="toggleMute()" class="h-24 rounded-[2.5rem] bg-white flex flex-col items-center justify-center gap-2 smooth-hover shadow-lg">
+                    <span id="mute-icon" class="text-3xl">🎤</span>
+                    <span id="mute-text" class="text-xs font-bold uppercase tracking-widest text-wise-dark">Mute</span>
+                </button>
+                
+                <button onclick="endSession()" class="h-24 rounded-[2.5rem] bg-[#FF3B30] text-white flex flex-col items-center justify-center gap-2 smooth-hover shadow-lg">
+                    <span class="text-3xl">📞</span>
+                    <span class="text-xs font-bold uppercase tracking-widest">End</span>
+                </button>
+            </div>
+            
+            <div class="mt-4 text-center">
+                 <p class="text-[10px] font-bold text-wise-dark/40 uppercase tracking-widest">End-to-End Encrypted</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Audio Element -->
+    <audio id="remote-audio" autoplay playsinline></audio>
+
+    <script>
+        // --- CORDOVA SPECIFIC LOGIC START ---
+        document.addEventListener('deviceready', onDeviceReady, false);
+
+        function onDeviceReady() {
+            console.log('Running on Android/Cordova');
+            
+            // 1. Handle Android Permissions (Microphone)
+            if (window.cordova && cordova.plugins && cordova.plugins.permissions) {
+                const permissions = cordova.plugins.permissions;
+                permissions.checkPermission(permissions.RECORD_AUDIO, function( status ){
+                    if ( !status.hasPermission ) {
+                        permissions.requestPermission(permissions.RECORD_AUDIO, 
+                            function(status){ 
+                                if( !status.hasPermission ) console.warn("Audio permission denied"); 
+                            },
+                            function(){ 
+                                console.warn("Audio permission failed"); 
+                            });
+                    }
+                });
+            }
+
+            // 2. Keep screen on during call (requires insomnia plugin)
+            if(window.plugins && window.plugins.insomnia) {
+                window.plugins.insomnia.keepAwake();
+            }
+        }
+        // --- CORDOVA SPECIFIC LOGIC END ---
+
+        // --- ORIGINAL APP LOGIC BELOW (UNTOUCHED) ---
+        let peer;
+        let localStream;
+        let activeCall;
+        let currentPin = '';
+        const PREFIX = 'aeon-secure-v33-';
+        let timerInterval;
+        let isMuted = false;
+        let reconnectTimer;
+        
+        let audioContext;
+        let analyser;
+        let dataArray;
+
+        window.onload = function () {
+            // Cordova check: If on device, we might not need this warning, but keeping logic
+            if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.protocol !== 'file:') {
+                document.getElementById('https-warning').classList.remove('hidden');
+            }
+            updateStatusDot('offline');
+        }
+
+        function showScreen(id) {
+            ['screen-mode', 'screen-host', 'screen-join', 'screen-status', 'screen-active'].forEach(s => {
+                const el = document.getElementById(s);
+                el.classList.add('hidden');
+            });
+            document.getElementById(id).classList.remove('hidden');
+            
+            const headerStatus = document.getElementById('connection-status');
+            if (id === 'screen-mode') {
+                headerStatus.classList.add('hidden');
+            } else {
+                headerStatus.classList.remove('hidden');
+            }
+            // Hide reconnect warning when switching screens
+            document.getElementById('reconnecting-warning').classList.add('hidden');
+        }
+
+        function updateStatusDot(state) {
+            const dot = document.getElementById('status-dot');
+            const text = document.getElementById('status-text');
+            
+            if (state === 'online') {
+                dot.className = 'w-2 h-2 rounded-full bg-wise-lime animate-pulse';
+                text.innerText = 'Online';
+                text.className = 'text-xs font-bold uppercase tracking-wide text-wise-dark';
+            } else if (state === 'waiting') {
+                dot.className = 'w-2 h-2 rounded-full bg-yellow-400 animate-pulse';
+                text.innerText = 'Waiting';
+                text.className = 'text-xs font-bold uppercase tracking-wide text-yellow-800';
+            } else if (state === 'error') {
+                dot.className = 'w-2 h-2 rounded-full bg-red-500';
+                text.innerText = 'Error';
+                text.className = 'text-xs font-bold uppercase tracking-wide text-red-700';
+            } else if (state === 'ended') {
+                // New friendly offline state
+                dot.className = 'w-2 h-2 rounded-full bg-gray-400';
+                text.innerText = 'Offline';
+                text.className = 'text-xs font-bold uppercase tracking-wide text-gray-500';
+            } else {
+                dot.className = 'w-2 h-2 rounded-full bg-gray-400';
+                text.innerText = 'Offline';
+                text.className = 'text-xs font-bold uppercase tracking-wide text-gray-500';
+            }
+        }
+
+        function cancelSession() {
+            cleanupSession();
+            stopTimer();
+            resetApp();
+        }
+
+        function resetApp() {
+            cleanupSession();
+            clearTimeout(reconnectTimer);
+            document.getElementById('reconnecting-warning').classList.add('hidden');
+            
+            currentPin = '';
+            document.getElementById('pin-display').innerText = '';
+            
+            updateConnectBtn();
+            isMuted = false;
+            updateMuteUI();
+            showScreen('screen-mode');
+            updateStatusDot('offline');
+        }
+
+        function endSession() {
+            // Close the active call explicitly first if it exists
+            if (activeCall) {
+                activeCall.close();
+            }
+            // Then do full cleanup
+            cancelSession();
+        }
+
+        // New Robust Cleanup Function
+        function cleanupSession() {
+            // 1. Stop Local Stream (Mic)
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+
+            // 2. Stop Remote Audio Stream (The "Ghost" Fix)
+            const remoteAudio = document.getElementById('remote-audio');
+            if (remoteAudio.srcObject) {
+                const tracks = remoteAudio.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                remoteAudio.srcObject = null;
+            }
+
+            // 3. Destroy Peer Connection
+            if (peer) {
+                peer.destroy();
+                peer = null;
+            }
+            
+            // 4. Close Audio Context (Visualizer)
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            
+            // 5. Clear Call Object
+            activeCall = null;
+        }
+
+        function stopLocalStream() {
+           cleanupSession(); // Redirect to robust cleanup
+        }
+
+        async function requestAudio() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+                return stream;
+            } catch (err) {
+                console.error("Audio Error:", err);
+                throw err;
+            }
+        }
+
+        function toggleMute() {
+            if (!localStream) return;
+            const audioTracks = localStream.getAudioTracks();
+            if (audioTracks.length === 0) return;
+
+            isMuted = !isMuted;
+            audioTracks.forEach(track => track.enabled = !isMuted);
+            updateMuteUI();
+        }
+
+        function updateMuteUI() {
+            const btn = document.getElementById('btn-mute');
+            const icon = document.getElementById('mute-icon');
+            const txt = document.getElementById('mute-text');
+
+            if (isMuted) {
+                btn.className = "h-24 rounded-[2.5rem] bg-red-100 flex flex-col items-center justify-center gap-2 smooth-hover shadow-lg border-2 border-red-200";
+                icon.innerText = "🔇";
+                txt.innerText = "Unmute";
+            } else {
+                btn.className = "h-24 rounded-[2.5rem] bg-white flex flex-col items-center justify-center gap-2 smooth-hover shadow-lg";
+                icon.innerText = "🎤";
+                txt.innerText = "Mute";
+            }
+        }
+
+        async function goToHost() {
+            const pin = Math.floor(100000 + Math.random() * 900000).toString();
+            showScreen('screen-host');
+            document.getElementById('generated-pin').innerText = `${pin.slice(0, 3)} ${pin.slice(3)}`;
+            updateStatusDot('waiting');
+
+            peer = new Peer(PREFIX + pin);
+
+            peer.on('open', (id) => { console.log('Peer open ID:', id); });
+
+            peer.on('call', async (call) => {
+                updateStatusDot('online');
+                try {
+                    localStream = await requestAudio();
+                    isMuted = false;
+                    updateMuteUI();
+                } catch (e) {
+                    showError('Mic Error', 'Please allow microphone access.', e);
+                    call.close();
+                    return;
+                }
+                initVisualizer(localStream);
+                handleCall(call);
+            });
+
+            peer.on('error', (err) => {
+                // Ignore network errors if we are already in an active call (handled by ICE monitor)
+                const isActive = !document.getElementById('screen-active').classList.contains('hidden');
+                
+                if (isActive && (err.type === 'network' || err.type === 'peer-unavailable')) {
+                    console.warn("Suppressing peer error during active call:", err);
+                    return; 
+                }
+
+                if (err.type === 'unavailable-id') {
+                    peer.destroy();
+                    setTimeout(goToHost, 500);
+                } else {
+                    showError('Connect Failed', 'Could not reach room.', err);
+                }
+            });
+        }
+
+        function goToJoin() {
+            showScreen('screen-join');
+            updateStatusDot('offline');
+        }
+
+        function pressKey(key) {
+            if (currentPin.length < 6) {
+                currentPin += key;
+                updatePinDisplay();
+            }
+        }
+        function backspacePin() {
+            currentPin = currentPin.slice(0, -1);
+            updatePinDisplay();
+        }
+        function clearPin() {
+            currentPin = '';
+            updatePinDisplay();
+        }
+        function updatePinDisplay() {
+            let display = currentPin;
+            if (currentPin.length > 3) {
+                display = currentPin.slice(0, 3) + ' ' + currentPin.slice(3);
+            }
+            document.getElementById('pin-display').innerText = display;
+            updateConnectBtn();
+        }
+        function updateConnectBtn() {
+            const btn = document.getElementById('btn-connect');
+            btn.disabled = currentPin.length !== 6;
+        }
+
+        async function connectToPin() {
+            showScreen('screen-status');
+            document.getElementById('status-icon').innerText = '📡';
+            document.getElementById('status-title').innerText = 'Searching';
+            document.getElementById('status-desc').innerText = `Looking for room ${currentPin}...`;
+            document.getElementById('debug-info').classList.add('hidden');
+            document.getElementById('status-ping').classList.remove('hidden');
+            updateStatusDot('waiting');
+
+            try {
+                localStream = await requestAudio();
+                isMuted = false;
+                updateMuteUI();
+            } catch (e) {
+                showError('Mic Error', 'Please allow microphone access.', e);
+                return;
+            }
+            
+            initVisualizer(localStream);
+
+            peer = new Peer();
+
+            peer.on('open', (id) => {
+                const targetId = PREFIX + currentPin;
+                const call = peer.call(targetId, localStream);
+
+                const timeout = setTimeout(() => {
+                    if (!activeCall) {
+                        showError('No Answer', 'Room not found or host busy.', { message: 'Connection timeout' });
+                        if (peer) peer.destroy();
+                    }
+                }, 8000);
+
+                handleCall(call, timeout);
+            });
+
+            peer.on('error', (err) => {
+                showError('Connect Failed', 'Could not reach room.', err);
+            });
+        }
+
+        function handleCall(call, timeoutTimer = null) {
+            if (timeoutTimer) clearTimeout(timeoutTimer);
+
+            call.answer(localStream);
+            activeCall = call;
+
+            // Monitor Connection Health for Reconnect Logic
+            monitorConnection(call);
+
+            call.on('stream', (remoteStream) => {
+                if (timeoutTimer) clearTimeout(timeoutTimer);
+                document.getElementById('remote-audio').srcObject = remoteStream;
+                transitionToActive();
+            });
+
+            call.on('close', () => {
+                // Use friendly end state instead of Error
+                showEndState('Call Finished', 'Call ended by peer.');
+            });
+
+            call.on('error', (e) => {
+                // Don't show error screen immediately for network issues during active call
+                // Let the monitorConnection handle it with the Reconnecting banner
+                const isActive = !document.getElementById('screen-active').classList.contains('hidden');
+                if (isActive) {
+                    console.log("Suppressing call error, waiting for ICE monitor:", e);
+                } else {
+                    showError('Dropped', 'Connection lost.', e);
+                }
+            });
+        }
+
+        function monitorConnection(call) {
+            if (!call.peerConnection) return;
+            
+            call.peerConnection.oniceconnectionstatechange = () => {
+                const state = call.peerConnection.iceConnectionState;
+                console.log('ICE state:', state);
+                
+                if (state === 'disconnected') {
+                    // Start Reconnection Logic
+                    document.getElementById('reconnecting-warning').classList.remove('hidden');
+                    // Wait 15 seconds before failing
+                    reconnectTimer = setTimeout(() => {
+                        // Only force end if we are still disconnected
+                        if (call.peerConnection.iceConnectionState === 'disconnected') {
+                             // Force go to end screen
+                            showEndState('Timeout', 'Connection lost.'); 
+                        }
+                    }, 15000); 
+                } else if (state === 'connected' || state === 'completed') {
+                    // Recovered
+                    document.getElementById('reconnecting-warning').classList.add('hidden');
+                    if (reconnectTimer) clearTimeout(reconnectTimer);
+                } else if (state === 'failed') {
+                    showEndState('Connection Failed', 'Lost connection.');
+                }
+            };
+        }
+
+        function transitionToActive() {
+            showScreen('screen-active');
+            updateStatusDot('online');
+            startTimer();
+            generateFingerprint();
+            startVisualizerLoop();
+        }
+
+        // New function for Friendly End State
+        function showEndState(title, desc) {
+            // Important: First clean up the audio so it stops playing!
+            cleanupSession();
+
+            showScreen('screen-status');
+            updateStatusDot('ended');
+            
+            document.getElementById('status-icon').innerText = '✅';
+            document.getElementById('status-title').innerText = title;
+            document.getElementById('status-desc').innerText = desc;
+            document.getElementById('status-ping').classList.add('hidden');
+            
+            document.getElementById('debug-info').classList.add('hidden');
+        }
+
+        function showError(title, desc, errObj = null) {
+            // Important: Cleanup audio on error too
+            cleanupSession();
+
+            showScreen('screen-status');
+            updateStatusDot('error');
+            
+            document.getElementById('status-icon').innerText = '⚠️';
+            document.getElementById('status-title').innerText = title;
+            document.getElementById('status-desc').innerText = desc;
+            document.getElementById('status-ping').classList.add('hidden');
+
+            const debugBox = document.getElementById('debug-info');
+            if (errObj) {
+                debugBox.classList.remove('hidden');
+                document.getElementById('err-msg').innerText = errObj.message || JSON.stringify(errObj);
+            } else {
+                debugBox.classList.add('hidden');
+            }
+        }
+
+        function initVisualizer(stream) {
+            if(!stream) return;
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioContext.createMediaStreamSource(stream);
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 64; 
+            source.connect(analyser);
+            dataArray = new Uint8Array(analyser.frequencyBinCount);
+        }
+
+        function startVisualizerLoop() {
+            if(!analyser) return;
+            
+            const blob = document.getElementById('visualizer-blob');
+            const remoteIndicator = document.getElementById('remote-indicator');
+
+            function renderFrame() {
+                if (document.getElementById('screen-active').classList.contains('hidden')) return;
+                
+                requestAnimationFrame(renderFrame);
+                analyser.getByteFrequencyData(dataArray);
+
+                let sum = 0;
+                for(let i = 0; i < dataArray.length; i++) { sum += dataArray[i]; }
+                const average = sum / dataArray.length;
+                
+                const scale = 1 + (average / 256) * 0.8;
+                blob.style.transform = `scale(${scale})`;
+                
+                 const remoteScale = 1 + (average / 256) * 1.5;
+                 remoteIndicator.style.transform = `scale(${remoteScale})`;
+                 remoteIndicator.style.opacity = (average / 256);
+            }
+            renderFrame();
+        }
+
+        function generateFingerprint() {
+            const icons = ['🔒', '🛡️', '⚔️', '👁️', '🗝️', '🧬', '☢️', '⚡', '🪐', '⚓'];
+            let seed = parseInt(currentPin || '123456');
+            if (isNaN(seed)) seed = Date.now();
+
+            let result = '';
+            for (let i = 0; i < 4; i++) {
+                seed = (seed * 9301 + 49297) % 233280;
+                const index = Math.floor((seed / 233280) * icons.length);
+                result += icons[index] + ' ';
+            }
+            document.getElementById('security-fingerprint').innerText = result;
+        }
+
+        function startTimer() {
+            let sec = 0;
+            const el = document.getElementById('session-timer');
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                sec++;
+                const m = Math.floor(sec / 60).toString().padStart(2, '0');
+                const s = (sec % 60).toString().padStart(2, '0');
+                el.innerText = `${m}:${s}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
+    </script>
+</body>
+</html>
