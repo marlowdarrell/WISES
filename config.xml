@@ -14,12 +14,11 @@
     <allow-intent href="market:*" />
     
     <platform name="android">
-        <!-- Target Android 14 (API 34) -->
-        <preference name="android-targetSdkVersion" value="34" />
-        <preference name="android-compileSdkVersion" value="34" />
+        <!-- Target Android 15 (API 35) - REQUIRED for Cordova Android 14+ -->
+        <preference name="android-targetSdkVersion" value="35" />
+        <preference name="android-compileSdkVersion" value="35" />
         <preference name="android-minSdkVersion" value="24" />
         
-        <!-- Background Mode Preferences -->
         <preference name="KeepRunning" value="true" />
         <preference name="AndroidLaunchMode" value="singleTask" />
 
@@ -29,21 +28,14 @@
             <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
             <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
             <uses-permission android:name="android.permission.WAKE_LOCK" />
-            
-            <!-- Android 12+ Bluetooth (Prevents crash when switching audio) -->
             <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
             <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
             <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-            
-            <!-- Android 13+ Notifications -->
             <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-            
-            <!-- Android 14+ Foreground Service (Prevents crash in background) -->
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
         </config-file>
         
-        <!-- Service Declaration for Background Mode -->
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
             <service android:name="de.appplant.cordova.plugin.background.ForegroundService" android:foregroundServiceType="microphone" />
         </config-file>
